@@ -1,12 +1,14 @@
 package main
 
 import (
+	"net/http"
+	"strings"
+
+	"api/cert"
 	"api/database"
 	"api/internal/dal/query"
 	"api/internal/handler"
 	"api/internal/service"
-	"net/http"
-	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -14,6 +16,7 @@ import (
 )
 
 func main() {
+	cert.Init()
 	// Load environment variables
 	godotenv.Load()
 

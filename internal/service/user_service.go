@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"api/internal/dal/model"
 	"api/internal/dal/query"
@@ -23,6 +24,9 @@ func NewUserService() UserService {
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *model.User) error {
+	user.EmailVerifiedAt = time.Now().UTC()
+	user.CreatedAt = time.Now().UTC()
+	user.UpdatedAt = time.Now().UTC()
 	return s.q.User.WithContext(ctx).Create(user)
 }
 

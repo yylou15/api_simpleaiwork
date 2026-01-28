@@ -16,7 +16,9 @@ func Connect() {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		PrepareStmt: true,
+	})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
