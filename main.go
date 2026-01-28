@@ -31,7 +31,14 @@ func main() {
 
 	// Configure CORS
 	config := cors.DefaultConfig()
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	config.AllowCredentials = true
 	config.AllowOriginFunc = func(origin string) bool {
+		// Allow localhost for development
+		if strings.HasPrefix(origin, "http://localhost") {
+			return true
+		}
 		// Allow root domain (http and https)
 		if origin == "https://simpleaiwork.com" || origin == "http://simpleaiwork.com" {
 			return true
@@ -54,6 +61,8 @@ func main() {
 	// Initialize Service and Handler
 	userHandler := handler.NewUserHandler(service.NewUserService())
 	// User Routes
+	r.POST("/auth/send-code", userHandler.SendVerificationCode)
+	r.POST("/auth/login", userHandler.Login)
 	r.POST("/users", userHandler.Register)
 	r.GET("/users", userHandler.GetUser)
 
