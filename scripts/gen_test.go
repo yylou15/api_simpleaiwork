@@ -41,8 +41,8 @@ func TestGen(t *testing.T) {
 	log.Println("Generating GORM code...")
 	// Generate GORM code
 	g := gen.NewGenerator(gen.Config{
-		OutPath:      "./internal/dal/query",
-		ModelPkgPath: "./internal/dal/model",
+		OutPath:      "../internal/dal/query",
+		ModelPkgPath: "../internal/dal/model",
 		Mode:         gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
 	})
 
