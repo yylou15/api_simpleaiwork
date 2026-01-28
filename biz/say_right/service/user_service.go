@@ -2,10 +2,16 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"math/big"
 	"time"
 
 	"api/biz/say_right/dal/model"
 	"api/biz/say_right/dal/query"
+	"api/infra/mail"
+	"api/infra/redis"
 )
 
 type UserService interface {
@@ -53,15 +59,85 @@ func (s *userService) FindOrCreateUser(ctx context.Context, email string) (*mode
 	return newUser, nil
 }
 
+const (
+	CodeExpiration  = 5 * time.Minute
+	KeyPrefixCode   = "biz:say_right:code:"   // code -> email (for uniqueness)
+	KeyPrefixVerify = "biz:say_right:verify:" // email -> code (for verification)
+)
+
 func (s *userService) SendVerificationCode(ctx context.Context, email string) error {
-	// MOCK: Just return success
+	// 1. Clean up old code if exists
+	verifyKey := KeyPrefixVerify + email
+	oldCode, err := redis.Client.Get(ctx, verifyKey).Result()
+	if err == nil && oldCode != "" {
+		redis.Client.Del(ctx, KeyPrefixCode+oldCode)
+	}
+
+	// 2. Generate unique code
+	var code string
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		c, err := generateCode()
+		if err != nil {
+			return err
+		}
+
+		// Check uniqueness
+		exists, err := redis.Client.Exists(ctx, KeyPrefixCode+c).Result()
+		if err != nil {
+			return err
+		}
+		if exists == 0 {
+			code = c
+			break
+		}
+	}
+	if code == "" {
+		return errors.New("failed to generate unique code")
+	}
+
+	// 3. Save to Redis
+	// Save code -> email (for uniqueness check)
+	if err := redis.Client.Set(ctx, KeyPrefixCode+code, email, CodeExpiration).Err(); err != nil {
+		return err
+	}
+	// Save email -> code (for verification)
+	if err := redis.Client.Set(ctx, verifyKey, code, CodeExpiration).Err(); err != nil {
+		return err
+	}
+
+	// 4. Send Email
+	// Using empty subject to use default
+	if err := mail.SendEmailCode(email, code, "Say Right Verify Code"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (s *userService) VerifyCode(ctx context.Context, email, code string) (bool, error) {
-	// MOCK: Check if code is 123456
-	if code == "123456" {
+	verifyKey := KeyPrefixVerify + email
+	storedCode, err := redis.Client.Get(ctx, verifyKey).Result()
+	if err != nil {
+		// If key not found (expired or never sent)
+		return false, nil
+	}
+
+	if storedCode == code {
+		// Verification successful
+		// Optional: Clean up after successful verification
+		// redis.Client.Del(ctx, verifyKey)
+		// redis.Client.Del(ctx, KeyPrefixCode+storedCode)
 		return true, nil
 	}
+
 	return false, nil
+}
+
+func generateCode() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
 }
