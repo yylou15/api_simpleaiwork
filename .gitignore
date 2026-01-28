@@ -19,8 +19,3 @@ go.work
 
 # Binary
 api
-api_server
-
-# Environment variables
-.env
-/.idea
