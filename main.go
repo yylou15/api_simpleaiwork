@@ -2,6 +2,9 @@ package main
 
 import (
 	"api/database"
+	"api/internal/dal/query"
+	"api/internal/handler"
+	"api/internal/service"
 	"net/http"
 	"strings"
 
@@ -16,6 +19,13 @@ func main() {
 
 	// Initialize Database
 	database.Connect()
+
+	// Initialize GORM Gen Query
+	query.SetDefault(database.DB)
+
+	// Initialize Service and Handler
+	userService := service.NewUserService()
+	userHandler := handler.NewUserHandler(userService)
 
 	// Initialize Gin engine
 	r := gin.Default()
@@ -41,6 +51,10 @@ func main() {
 			"message": "pong2",
 		})
 	})
+
+	// User Routes
+	r.POST("/users", userHandler.Register)
+	r.GET("/users", userHandler.GetUser)
 
 	// Run the server on port 8080
 	r.Run(":8080")
