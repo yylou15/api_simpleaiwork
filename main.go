@@ -9,6 +9,8 @@ import (
 	"api/biz/say_right/service"
 	"api/cert"
 	"api/database"
+	"api/infra/mail"
+	"api/infra/redis"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,6 +21,8 @@ func main() {
 	cert.Init()
 	// Load environment variables
 	godotenv.Load()
+	mail.CreateEmailClient()
+	redis.Init()
 
 	// Initialize Database
 	database.Connect()
