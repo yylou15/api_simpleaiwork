@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"api/internal/dal/model"
 	"api/internal/service"
@@ -26,6 +27,9 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
+	// Auto-normalize email
+	user.EmailNorm = strings.ToLower(strings.TrimSpace(user.Email))
+
 	// Note: In a real application, you should handle password hashing, validation, etc.
 	// This is just a generated example.
 
@@ -44,7 +48,10 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.svc.GetUserByEmail(c.Request.Context(), email)
+	// Normalize email for lookup
+	emailNorm := strings.ToLower(strings.TrimSpace(email))
+
+	user, err := h.svc.GetUserByEmail(c.Request.Context(), emailNorm)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

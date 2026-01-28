@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -16,11 +16,11 @@ func Connect() {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
 	DB = db
-	log.Println("Database connection established successfully")
+	log.Println("Database connection established successfully (MySQL)")
 }
