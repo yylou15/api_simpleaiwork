@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strings"
 
+	"api/biz/say_right/dal/query"
+	"api/biz/say_right/handler"
+	"api/biz/say_right/service"
 	"api/cert"
 	"api/database"
-	"api/internal/dal/query"
-	"api/internal/handler"
-	"api/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

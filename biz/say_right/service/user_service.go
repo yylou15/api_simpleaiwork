@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"api/internal/dal/model"
-	"api/internal/dal/query"
+	"api/biz/say_right/dal/model"
+	"api/biz/say_right/dal/query"
 )
 
 type UserService interface {

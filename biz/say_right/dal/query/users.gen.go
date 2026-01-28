@@ -7,6 +7,8 @@ package query
 import (
 	"context"
 
+	"api/biz/say_right/dal/model"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
@@ -15,8 +17,6 @@ import (
 	"gorm.io/gen/field"
 
 	"gorm.io/plugin/dbresolver"
-
-	"api/internal/dal/model"
 )
 
 func newUser(db *gorm.DB, opts ...gen.DOOption) user {

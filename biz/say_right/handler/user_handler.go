@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"api/internal/dal/model"
-	"api/internal/service"
+	"api/biz/say_right/dal/model"
+	"api/biz/say_right/service"
 
 	"github.com/gin-gonic/gin"
 )
