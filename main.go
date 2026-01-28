@@ -26,10 +26,6 @@ func main() {
 	// Initialize GORM Gen Query
 	query.SetDefault(database.DB)
 
-	// Initialize Service and Handler
-	userService := service.NewUserService()
-	userHandler := handler.NewUserHandler(userService)
-
 	// Initialize Gin engine
 	r := gin.Default()
 
@@ -55,6 +51,8 @@ func main() {
 		})
 	})
 
+	// Initialize Service and Handler
+	userHandler := handler.NewUserHandler(service.NewUserService())
 	// User Routes
 	r.POST("/users", userHandler.Register)
 	r.GET("/users", userHandler.GetUser)
