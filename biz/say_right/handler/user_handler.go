@@ -7,6 +7,7 @@ import (
 	"api/biz/say_right/dal/model"
 	"api/biz/say_right/service"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -108,6 +109,15 @@ func (h *UserHandler) Login(c *gin.Context) {
 	user, err := h.svc.FindOrCreateUser(c.Request.Context(), emailNorm)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Save session
+	session := sessions.Default(c)
+	session.Set("user_id", user.ID)
+	session.Set("user_email", user.Email)
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 		return
 	}
 
