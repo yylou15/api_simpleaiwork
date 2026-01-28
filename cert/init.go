@@ -3,24 +3,45 @@ package cert
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"os"
 
 	"github.com/go-sql-driver/mysql"
 )
 
-func Init() {
-	caCert, err := os.ReadFile("./cert/ca-certificate.crt")
-	if err != nil {
-		panic(err)
-	}
+var caCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIEUDCCArigAwIBAgIUFf3wtSF8sWZf8nawQjr/XPtnB18wDQYJKoZIhvcNAQEM
+BQAwQDE+MDwGA1UEAww1MmRjMDcxM2EtZTIzYi00Mzk0LWJiOTAtMGRiMjYyODY4
+NGJlIEdFTiAxIFByb2plY3QgQ0EwHhcNMjYwMTI3MDYwMzI1WhcNMzYwMTI1MDYw
+MzI1WjBAMT4wPAYDVQQDDDUyZGMwNzEzYS1lMjNiLTQzOTQtYmI5MC0wZGIyNjI4
+Njg0YmUgR0VOIDEgUHJvamVjdCBDQTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCC
+AYoCggGBAK9KPPF3e4C5smRDrsicbGtkvAHxMTuWrKVYHuQrltB4hxvUFn+NVMl8
+/h2pzAKl6JKD0xaqlOqh85NOOlFJEIUhD0HBVEHNbqDaLweoIDalXQ5vkXfIZJmF
+/x97tkPgnWwY+zr/6QeLNA6bFtnAuXZvSNbnmOhLipPHLpzOH6bP+ewrn6PEeIac
+YJW6I6Kl+oM9/4ZyOk/I811vMWLeHhHFixpvEwIcmmmUMcXF3Okax4jOObnUMGjV
+M7SlVE5Le8t9LhR6jP7b6k14CCVZ0UHekD5m6rKfpDfK9lG4weFlh42Q9UK80c6c
+xzIqyT6poql6nkJ5ZvrsNcY5HWK/kKz/ZgWB+A5LmPxEdjgt2DFY4NWY9p3Xab7U
+STtNT17V6z962fb1ECtIIwgV7lUr9LOnG27u0PX7HSuPFZ2OOwNZLe4zTmdHHft9
+jVF9cHZyBw8V8kUzD5HfPl9lB58yTZFVN8WN4rk2oYlh/zaFMrXzcLoxRXeSvq/x
+a9rjCQvVBQIDAQABo0IwQDAdBgNVHQ4EFgQUxaOkHwgSW1lwMjyjwLpwabpj8HEw
+EgYDVR0TAQH/BAgwBgEB/wIBADALBgNVHQ8EBAMCAQYwDQYJKoZIhvcNAQEMBQAD
+ggGBADi9DJ9A+DvdlJzvRgZtIWFri2IvCa/LuhEO1A7IvfLJFuYcWe0QBccWpJNd
+BduVwf6BRcMXX7rw1oJJKeJu9IYaUKWa+uBLr9ik/Ih+s8z99/8/6Y/zvlz8iLGG
+a3yNWzw7rRPcwm1swB3Wei52PNNe6s28OaZVezYbr8wV4+0X8geD2zaZtdUMY8Hd
+/hUCCzsKZlnnHyWavg7hyejPV4HwnOjqR4wuUE3D4AM3SFhkWryIHjvL6rVAo8Kv
+Aj4xDlpq8MkeiwgR2VthJfvCBs2bAZe32LlfrNmLtCBXFHltA0nO22MqsHOB0Ma6
+iQCX88zAZiv64Xh3Z8gCK5oLwippJ0wnfD/lIqSloFPSCdotoiy/o/++ZadM/RTM
+3UbHuK7FbVdQqj+rcAY340OumZP3j4HQtvLs/UxUYpNYDdcQ4xBZ+rOD+uPB6TUQ
+xsGvkj3M6y5McnPTNExzp3B1u/AfIrsG0HbiLpCJENgncWh4J5FRBuEFZx8L/UTc
+cxKMYQ==
+-----END CERTIFICATE-----`)
 
+func Init() {
 	caPool := x509.NewCertPool()
 	if ok := caPool.AppendCertsFromPEM(caCert); !ok {
 		panic("failed to append CA cert")
 	}
 
 	// 注册一个自定义 TLS 配置
-	err = mysql.RegisterTLSConfig("do", &tls.Config{
+	err := mysql.RegisterTLSConfig("do", &tls.Config{
 		RootCAs:    caPool,
 		ServerName: "db-mysql-sgp1-11646-do-user-6185766-0.m.db.ondigitalocean.com",
 	})
