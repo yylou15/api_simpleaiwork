@@ -20,6 +20,7 @@ type UserService interface {
 	FindOrCreateUser(ctx context.Context, email string) (*model.User, error)
 	SendVerificationCode(ctx context.Context, email string) error
 	VerifyCode(ctx context.Context, email, code string) (bool, error)
+	UpgradeUserToPro(ctx context.Context, email string) error
 }
 
 type userService struct {
@@ -132,6 +133,23 @@ func (s *userService) VerifyCode(ctx context.Context, email, code string) (bool,
 	}
 
 	return false, nil
+}
+
+func (s *userService) UpgradeUserToPro(ctx context.Context, email string) error {
+	user, err := s.GetUserByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	user.IsPro = true
+	// Update specific columns using map since IsPro is not in generated query yet
+	_, err = s.q.User.WithContext(ctx).Where(s.q.User.ID.Eq(user.ID)).Updates(map[string]interface{}{
+		"is_pro": true,
+	})
+	return err
 }
 
 func generateCode() (string, error) {

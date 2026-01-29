@@ -88,6 +88,7 @@ func main() {
 
 	// Initialize Service and Handler
 	userHandler := handler.NewUserHandler(service.NewUserService())
+	paddleHandler := handler.NewPaddleHandler(service.NewUserService())
 
 	// Public Routes
 	authGroup := r.Group("/auth")
@@ -95,6 +96,9 @@ func main() {
 		authGroup.POST("/send-code", userHandler.SendVerificationCode)
 		authGroup.POST("/login", userHandler.Login)
 	}
+
+	// Webhooks
+	r.POST("/webhooks/paddle", paddleHandler.HandleWebhook)
 
 	// Protected Routes
 	protected := r.Group("/")

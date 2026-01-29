@@ -21,13 +21,13 @@ func TestGen(t *testing.T) {
 	defer os.Remove("gen.db") // Clean up
 
 	// Read SQL file
-	sqlContent, err := os.ReadFile("scripts/init_sqlite.sql")
+	sqlContent, err := os.ReadFile("init.sql")
 	if err != nil {
-		t.Fatal("Failed to read init_sqlite.sql:", err)
+		t.Fatal("Failed to read init.sql:", err)
 	}
 
 	// Execute SQL
-	log.Println("Executing init_sqlite.sql...")
+	log.Println("Executing init.sql...")
 	queries := splitSQL(string(sqlContent))
 	for _, q := range queries {
 		if q == "" {
