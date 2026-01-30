@@ -6,8 +6,7 @@ package query
 
 import (
 	"context"
-
-	"api/biz/say_right/dal/model"
+	"database/sql"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -17,6 +16,8 @@ import (
 	"gorm.io/gen/field"
 
 	"gorm.io/plugin/dbresolver"
+
+	"api/biz/say_right/dal/model"
 )
 
 func newUser(db *gorm.DB, opts ...gen.DOOption) user {
@@ -32,6 +33,7 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.EmailNorm = field.NewString(tableName, "email_norm")
 	_user.EmailVerifiedAt = field.NewTime(tableName, "email_verified_at")
 	_user.Status = field.NewInt32(tableName, "status")
+	_user.IsPro = field.NewInt32(tableName, "is_pro")
 	_user.CreatedAt = field.NewTime(tableName, "created_at")
 	_user.UpdatedAt = field.NewTime(tableName, "updated_at")
 
@@ -49,6 +51,7 @@ type user struct {
 	EmailNorm       field.String
 	EmailVerifiedAt field.Time
 	Status          field.Int32
+	IsPro           field.Int32
 	CreatedAt       field.Time
 	UpdatedAt       field.Time
 
@@ -72,6 +75,7 @@ func (u *user) updateTableName(table string) *user {
 	u.EmailNorm = field.NewString(table, "email_norm")
 	u.EmailVerifiedAt = field.NewTime(table, "email_verified_at")
 	u.Status = field.NewInt32(table, "status")
+	u.IsPro = field.NewInt32(table, "is_pro")
 	u.CreatedAt = field.NewTime(table, "created_at")
 	u.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -90,12 +94,13 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 7)
+	u.fieldMap = make(map[string]field.Expr, 8)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["email"] = u.Email
 	u.fieldMap["email_norm"] = u.EmailNorm
 	u.fieldMap["email_verified_at"] = u.EmailVerifiedAt
 	u.fieldMap["status"] = u.Status
+	u.fieldMap["is_pro"] = u.IsPro
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
 }
@@ -167,6 +172,8 @@ type IUserDo interface {
 	FirstOrCreate() (*model.User, error)
 	FindByPage(offset int, limit int) (result []*model.User, count int64, err error)
 	ScanByPage(result interface{}, offset int, limit int) (count int64, err error)
+	Rows() (*sql.Rows, error)
+	Row() *sql.Row
 	Scan(result interface{}) (err error)
 	Returning(value interface{}, columns ...string) IUserDo
 	UnderlyingDB() *gorm.DB

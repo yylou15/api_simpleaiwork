@@ -17,14 +17,20 @@ import (
 
 var (
 	Q                 = new(Query)
+	Category          *category
 	EmailVerification *emailVerification
+	Template          *template
+	TemplateDetail    *templateDetail
 	User              *user
 	UserIdentity      *userIdentity
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	Category = &Q.Category
 	EmailVerification = &Q.EmailVerification
+	Template = &Q.Template
+	TemplateDetail = &Q.TemplateDetail
 	User = &Q.User
 	UserIdentity = &Q.UserIdentity
 }
@@ -32,7 +38,10 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                db,
+		Category:          newCategory(db, opts...),
 		EmailVerification: newEmailVerification(db, opts...),
+		Template:          newTemplate(db, opts...),
+		TemplateDetail:    newTemplateDetail(db, opts...),
 		User:              newUser(db, opts...),
 		UserIdentity:      newUserIdentity(db, opts...),
 	}
@@ -41,7 +50,10 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	Category          category
 	EmailVerification emailVerification
+	Template          template
+	TemplateDetail    templateDetail
 	User              user
 	UserIdentity      userIdentity
 }
@@ -51,7 +63,10 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		Category:          q.Category.clone(db),
 		EmailVerification: q.EmailVerification.clone(db),
+		Template:          q.Template.clone(db),
+		TemplateDetail:    q.TemplateDetail.clone(db),
 		User:              q.User.clone(db),
 		UserIdentity:      q.UserIdentity.clone(db),
 	}
@@ -68,21 +83,30 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		Category:          q.Category.replaceDB(db),
 		EmailVerification: q.EmailVerification.replaceDB(db),
+		Template:          q.Template.replaceDB(db),
+		TemplateDetail:    q.TemplateDetail.replaceDB(db),
 		User:              q.User.replaceDB(db),
 		UserIdentity:      q.UserIdentity.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
+	Category          ICategoryDo
 	EmailVerification IEmailVerificationDo
+	Template          ITemplateDo
+	TemplateDetail    ITemplateDetailDo
 	User              IUserDo
 	UserIdentity      IUserIdentityDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		Category:          q.Category.WithContext(ctx),
 		EmailVerification: q.EmailVerification.WithContext(ctx),
+		Template:          q.Template.WithContext(ctx),
+		TemplateDetail:    q.TemplateDetail.WithContext(ctx),
 		User:              q.User.WithContext(ctx),
 		UserIdentity:      q.UserIdentity.WithContext(ctx),
 	}

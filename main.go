@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -19,9 +17,8 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	sredis "github.com/gin-contrib/sessions/redis"
+	cookieStore "github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	redigo "github.com/gomodule/redigo/redis"
 	"github.com/joho/godotenv"
 )
 
@@ -73,79 +70,67 @@ func main() {
 		})
 	})
 
-	// Initialize Service and Handler
-	userHandler := handler.NewUserHandler(service.NewUserService())
-	paddleHandler := handler.NewPaddleHandler(service.NewUserService())
-
-	// Public Routes
-	authGroup := r.Group("/auth")
-	{
-		authGroup.POST("/send-code", userHandler.SendVerificationCode)
-		authGroup.POST("/login", userHandler.Login)
-	}
-
-	// Webhooks
-	r.POST("/webhooks/paddle", paddleHandler.HandleWebhook)
-
-	// Protected Routes
-	protected := r.Group("/")
-	protected.Use(middleware.AuthMiddleware())
-	{
-		protected.GET("/users", userHandler.GetUser)
-		// Register can be protected or public depending on requirement.
-		// Assuming public for now as it's often part of sign-up, but user said "homepage no need login", others need.
-		// If Register is "admin create user", it should be protected. If "user sign up", public.
-		// Given Login handles sign-up (FindOrCreate), POST /users might be redundant or for admin.
-		// Let's keep POST /users public for now or put it in protected if it's strictly for authenticated users.
-		// I'll leave it public for now to avoid breaking existing tests/usage, but technically usually sign-up is public.
-	}
-	r.POST("/users", userHandler.Register) // Kept public
+	// Register product routes
+	registerProductRoutes(r)
 
 	// Run the server on port 8080
 	r.Run(":8080")
 }
 
-func buildRedisStore() sessions.Store {
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		panic("REDIS_URL environment variable is not set")
+// registerProductRoutes registers routes for all products
+func registerProductRoutes(r *gin.Engine) {
+	// Initialize Paddle handler for global webhooks
+	paddleHandler := handler.NewPaddleHandler(service.NewUserService())
+
+	// Global webhooks
+	r.POST("/webhooks/paddle", paddleHandler.HandleWebhook)
+
+	// Register sayright routes
+	registerSayRightRoutes(r)
+
+	// Future products can be added here
+	// registerCareerGameRoutes(r)
+	// registerOtherProductRoutes(r)
+}
+
+// registerSayRightRoutes registers routes for sayright product
+func registerSayRightRoutes(r *gin.Engine) {
+	// Initialize Service and Handler
+	userHandler := handler.NewUserHandler(service.NewUserService())
+	templateHandler := handler.NewTemplateHandler(service.NewTemplateService())
+
+	// Create product route group with prefix
+	sayRightGroup := r.Group("/sayright")
+	{
+		// Public Routes
+		authGroup := sayRightGroup.Group("/auth")
+		{
+			authGroup.POST("/send-code", userHandler.SendVerificationCode)
+			authGroup.POST("/login", userHandler.Login)
+		}
+
+		// Protected Routes
+		protected := sayRightGroup.Group("/")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			protected.GET("/users", userHandler.GetUser)
+			protected.GET("/templates", templateHandler.ListTemplates)
+			protected.GET("/templates/:id", templateHandler.GetTemplateDetail)
+		}
+
+		// Public route
+		sayRightGroup.POST("/users", userHandler.Register)
 	}
+}
+
+func buildRedisStore() sessions.Store {
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
 		secret = "secret123"
 	}
 
-	u, err := url.Parse(redisURL)
-	if err != nil {
-		panic(err)
-	}
-	password, _ := u.User.Password()
-
-	useTLS := strings.HasPrefix(redisURL, "rediss://")
-	pool := &redigo.Pool{
-		MaxIdle:     10,
-		MaxActive:   50,
-		IdleTimeout: 5 * time.Minute,
-		Dial: func() (redigo.Conn, error) {
-			options := []redigo.DialOption{}
-			if password != "" {
-				options = append(options, redigo.DialPassword(password))
-			}
-			if useTLS {
-				options = append(options, redigo.DialTLSConfig(&tls.Config{MinVersion: tls.VersionTLS12}))
-			}
-			return redigo.Dial("tcp", u.Host, options...)
-		},
-		TestOnBorrow: func(conn redigo.Conn, t time.Time) error {
-			_, err := conn.Do("PING")
-			return err
-		},
-	}
-
-	store, err := sredis.NewStoreWithPool(pool, []byte(secret))
-	if err != nil {
-		panic(err)
-	}
+	// Use cookie store for testing
+	store := cookieStore.NewStore([]byte(secret))
 
 	maxAge := 86400 * 7
 	if v := os.Getenv("SESSION_MAX_AGE"); v != "" {

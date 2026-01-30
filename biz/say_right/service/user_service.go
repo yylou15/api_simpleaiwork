@@ -171,10 +171,10 @@ func (s *userService) UpgradeUserToPro(ctx context.Context, email string) error 
 		return errors.New("user not found")
 	}
 
-	user.IsPro = true
+	user.IsPro = 1
 	// Update specific columns using map since IsPro is not in generated query yet
 	_, err = s.q.User.WithContext(ctx).Where(s.q.User.ID.Eq(user.ID)).Updates(map[string]interface{}{
-		"is_pro": true,
+		"is_pro": 1,
 	})
 	return err
 }

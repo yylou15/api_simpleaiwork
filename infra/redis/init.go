@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -31,7 +32,7 @@ func Init() {
 	// For now, we trust the standard CA roots or the provider's setup.
 
 	// Ensure TLS is enabled if scheme was rediss
-	if opt.TLSConfig == nil && (redisURL[:8] == "rediss:/" || redisURL[:8] == "rediss:/") {
+	if opt.TLSConfig == nil && strings.HasPrefix(redisURL, "rediss://") {
 		opt.TLSConfig = &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		}

@@ -17,7 +17,7 @@ type User struct {
 	EmailNorm       string    `gorm:"column:email_norm;not null" json:"email_norm"`
 	EmailVerifiedAt time.Time `gorm:"column:email_verified_at" json:"email_verified_at"`
 	Status          int32     `gorm:"column:status;not null;default:1" json:"status"`
-	IsPro           bool      `gorm:"column:is_pro;not null;default:0" json:"is_pro"`
+	IsPro           int32     `gorm:"column:is_pro;not null" json:"is_pro"`
 	CreatedAt       time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
 }

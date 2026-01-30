@@ -6,8 +6,7 @@ package query
 
 import (
 	"context"
-
-	"api/biz/say_right/dal/model"
+	"database/sql"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -17,6 +16,8 @@ import (
 	"gorm.io/gen/field"
 
 	"gorm.io/plugin/dbresolver"
+
+	"api/biz/say_right/dal/model"
 )
 
 func newEmailVerification(db *gorm.DB, opts ...gen.DOOption) emailVerification {
@@ -183,6 +184,8 @@ type IEmailVerificationDo interface {
 	FirstOrCreate() (*model.EmailVerification, error)
 	FindByPage(offset int, limit int) (result []*model.EmailVerification, count int64, err error)
 	ScanByPage(result interface{}, offset int, limit int) (count int64, err error)
+	Rows() (*sql.Rows, error)
+	Row() *sql.Row
 	Scan(result interface{}) (err error)
 	Returning(value interface{}, columns ...string) IEmailVerificationDo
 	UnderlyingDB() *gorm.DB

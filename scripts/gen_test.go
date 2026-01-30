@@ -21,7 +21,7 @@ func TestGen(t *testing.T) {
 	defer os.Remove("gen.db") // Clean up
 
 	// Read SQL file
-	sqlContent, err := os.ReadFile("init.sql")
+	sqlContent, err := os.ReadFile("init_sqlite.sql")
 	if err != nil {
 		t.Fatal("Failed to read init.sql:", err)
 	}
@@ -41,8 +41,8 @@ func TestGen(t *testing.T) {
 	log.Println("Generating GORM code...")
 	// Generate GORM code
 	g := gen.NewGenerator(gen.Config{
-		OutPath:      "../internal/dal/query",
-		ModelPkgPath: "../internal/dal/model",
+		OutPath:      "../biz/say_right/dal/query",
+		ModelPkgPath: "../biz/say_right/dal/model",
 		Mode:         gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
 	})
 
@@ -71,6 +71,9 @@ func TestGen(t *testing.T) {
 		g.GenerateModel("users"),
 		g.GenerateModel("user_identities"),
 		g.GenerateModel("email_verifications"),
+		g.GenerateModel("categories"),
+		g.GenerateModel("templates"),
+		g.GenerateModel("template_details"),
 	)
 
 	g.Execute()
