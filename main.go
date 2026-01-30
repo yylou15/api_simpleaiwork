@@ -1,8 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
+	"time"
 
 	"api/biz/say_right/dal/query"
 	"api/biz/say_right/handler"
@@ -15,8 +19,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	sredis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	redigo "github.com/gomodule/redigo/redis"
 	"github.com/joho/godotenv"
 )
 
@@ -36,26 +41,8 @@ func main() {
 	// Initialize Gin engine
 	r := gin.Default()
 
-	// Configure Session Store (using Redis if possible, else Cookie as fallback or for simplicity)
-	// Given we already have Redis URL, we can use it.
-	// However, `gin-contrib/sessions/redis` uses `redigo` which needs manual TLS config for DigitalOcean.
-	// For simplicity and robustness in this demo, we will use Cookie store for sessions unless we implement the custom Redis store.
-	// Since user asked for session management, Cookie store is a valid implementation (client-side session).
-	// If server-side session is strictly required, we'd need the custom Redis store implementation.
-	// Let's use Redis store with a simple attempt, if it fails, fallback to Cookie? No, fail fast.
-	// We will use Cookie store for now as it doesn't require extra infra setup for TLS inside the session library.
-	store := cookie.NewStore([]byte("secret123")) // In production, use env var
-	// store.Options(sessions.Options{MaxAge: 3600 * 24}) // 1 day
+	store := buildRedisStore()
 	r.Use(sessions.Sessions("mysession", store))
-
-	/*
-		// If we were to use Redis Store without TLS issues:
-		redisURL := os.Getenv("REDIS_URL")
-		u, _ := url.Parse(redisURL)
-		password, _ := u.User.Password()
-		store, _ := sredis.NewStore(10, "tcp", u.Host, password, []byte("secret"))
-		r.Use(sessions.Sessions("mysession", store))
-	*/
 
 	// Configure CORS
 	config := cors.DefaultConfig()
@@ -116,4 +103,77 @@ func main() {
 
 	// Run the server on port 8080
 	r.Run(":8080")
+}
+
+func buildRedisStore() sessions.Store {
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		panic("REDIS_URL environment variable is not set")
+	}
+	secret := os.Getenv("SESSION_SECRET")
+	if secret == "" {
+		secret = "secret123"
+	}
+
+	u, err := url.Parse(redisURL)
+	if err != nil {
+		panic(err)
+	}
+	password, _ := u.User.Password()
+
+	useTLS := strings.HasPrefix(redisURL, "rediss://")
+	pool := &redigo.Pool{
+		MaxIdle:     10,
+		MaxActive:   50,
+		IdleTimeout: 5 * time.Minute,
+		Dial: func() (redigo.Conn, error) {
+			options := []redigo.DialOption{}
+			if password != "" {
+				options = append(options, redigo.DialPassword(password))
+			}
+			if useTLS {
+				options = append(options, redigo.DialTLSConfig(&tls.Config{MinVersion: tls.VersionTLS12}))
+			}
+			return redigo.Dial("tcp", u.Host, options...)
+		},
+		TestOnBorrow: func(conn redigo.Conn, t time.Time) error {
+			_, err := conn.Do("PING")
+			return err
+		},
+	}
+
+	store, err := sredis.NewStoreWithPool(pool, []byte(secret))
+	if err != nil {
+		panic(err)
+	}
+
+	maxAge := 86400 * 7
+	if v := os.Getenv("SESSION_MAX_AGE"); v != "" {
+		if parsed, err := time.ParseDuration(v); err == nil {
+			maxAge = int(parsed.Seconds())
+		}
+	}
+
+	options := sessions.Options{
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+	}
+	if domain := os.Getenv("SESSION_DOMAIN"); domain != "" {
+		options.Domain = domain
+	}
+	if os.Getenv("SESSION_SECURE") == "true" {
+		options.Secure = true
+	}
+	if strings.EqualFold(os.Getenv("SESSION_SAMESITE"), "none") {
+		options.SameSite = http.SameSiteNoneMode
+		options.Secure = true
+	} else if strings.EqualFold(os.Getenv("SESSION_SAMESITE"), "strict") {
+		options.SameSite = http.SameSiteStrictMode
+	} else {
+		options.SameSite = http.SameSiteLaxMode
+	}
+
+	store.Options(options)
+	return store
 }

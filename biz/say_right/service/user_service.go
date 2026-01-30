@@ -64,9 +64,36 @@ const (
 	CodeExpiration  = 5 * time.Minute
 	KeyPrefixCode   = "biz:say_right:code:"   // code -> email (for uniqueness)
 	KeyPrefixVerify = "biz:say_right:verify:" // email -> code (for verification)
+	SendCooldown    = 60 * time.Second
+	KeyPrefixSend   = "biz:say_right:send:" // email -> cooldown lock
 )
 
+type RateLimitError struct {
+	RetryAfter int
+}
+
+func (e RateLimitError) Error() string {
+	return fmt.Sprintf("Please wait %d seconds", e.RetryAfter)
+}
+
 func (s *userService) SendVerificationCode(ctx context.Context, email string) error {
+	cooldownKey := KeyPrefixSend + email
+	acquired, err := redis.Client.SetNX(ctx, cooldownKey, "1", SendCooldown).Result()
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		ttl, err := redis.Client.TTL(ctx, cooldownKey).Result()
+		if err != nil {
+			return err
+		}
+		retryAfter := int(ttl.Seconds())
+		if retryAfter < 1 {
+			retryAfter = int(SendCooldown.Seconds())
+		}
+		return RateLimitError{RetryAfter: retryAfter}
+	}
+
 	// 1. Clean up old code if exists
 	verifyKey := KeyPrefixVerify + email
 	oldCode, err := redis.Client.Get(ctx, verifyKey).Result()

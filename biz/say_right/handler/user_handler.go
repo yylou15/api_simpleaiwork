@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -75,6 +76,11 @@ func (h *UserHandler) SendVerificationCode(c *gin.Context) {
 	emailNorm := strings.ToLower(strings.TrimSpace(req.Email))
 
 	if err := h.svc.SendVerificationCode(c.Request.Context(), emailNorm); err != nil {
+		var rateErr service.RateLimitError
+		if errors.As(err, &rateErr) {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error(), "retry_after": rateErr.RetryAfter})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
